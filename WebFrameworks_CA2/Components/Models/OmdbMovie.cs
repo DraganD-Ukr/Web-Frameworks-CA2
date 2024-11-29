@@ -5,5 +5,6 @@ public class OmdbMovie {
     public string Title { get; set; }
     public string Year { get; set; }
     public string Type { get; set; }
-    public String ImgUrl { get; set; }
+    public String Poster { get; set; }
+    public String Description { get; set; }
 }

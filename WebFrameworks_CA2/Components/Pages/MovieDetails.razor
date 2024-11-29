@@ -1,0 +1,82 @@
+﻿@page "/movies/{ImdbID}"
+
+@using WebFrameworks_CA2.Components.Models
+@inject ILogger<string> Logger
+@inject IJSRuntime JsRuntime
+@rendermode InteractiveServer
+
+<PageTitle>@title</PageTitle>
+
+<h3>Movie Details</h3>
+
+@if (movie == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div>
+        <img src="@(!string.IsNullOrEmpty(movie.Poster) ? movie.Poster : "https://via.placeholder.com/150")" 
+             alt="@movie.Title poster" style="max-width: 200px;" />
+        <h4>@movie.Title (@movie.ReleaseDate)</h4>
+        <p><strong>Type:</strong> @movie.Type</p>
+        <p><strong>Plot:</strong> @movie.Plot</p>
+        <p><strong>Actors:</strong> @movie.Actors</p>
+        <button class="btn btn-secondary" @onclick=BackToMovies> Back to Movies </button>
+    </div>
+}
+
+@code {
+    [Parameter] public string ImdbID { get; set; }
+
+    private string title => movie?.Title ?? "Movie Details";
+    private FullOmdbMovie movie;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var apiKey = Environment.GetEnvironmentVariable("OMDB_API_KEY");
+
+        if (string.IsNullOrEmpty(apiKey)) {
+            Logger.LogError("API key is not set in the environment variables.");
+            throw new InvalidOperationException("API key is not set in the environment variables.");
+        }
+
+        try
+        {
+            // Make the API call
+            HttpClient Http = new HttpClient();
+            var response = await Http.GetAsync($"https://www.omdbapi.com/?i={ImdbID}&apikey={apiKey}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Parse the response into the 'movie' object
+                movie = await response.Content.ReadFromJsonAsync<FullOmdbMovie>();
+                await JsRuntime.InvokeVoidAsync("blazorSetTitle ", movie.Title);
+            }
+            else
+            {
+                Logger.LogWarning("Failed to fetch movie details. Status code: {StatusCode}", response.StatusCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error fetching movie details.");
+        }
+    }
+
+
+    
+    
+    
+    // Navigation back to the movies page
+    [Inject]
+    public NavigationManager Navigation { get; set; }
+    
+    private void BackToMovies()
+    {
+        Logger.LogInformation("Navigating back to home page.");
+        Navigation.NavigateTo("/movies");
+    }
+    
+    
+}
