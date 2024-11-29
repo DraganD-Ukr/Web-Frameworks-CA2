@@ -1,0 +1,45 @@
+﻿@using WebFrameworks_CA2.Components.Models
+
+<div class="d-flex flex-column">
+    @foreach (var movie in Movies)
+    {
+    <div class="card mb-3" style="max-width: 50%; height: 150px;">
+        <div class="row g-0">
+            <!-- Image Section -->
+            <div class="col-md-3 p-0" style="display: flex; justify-content: center;"> <!-- Align image to the right -->
+                <img src="@(!string.IsNullOrEmpty(movie.Poster) ? movie.Poster : "https://via.placeholder.com/150")"
+                     class="img-fluid rounded-start"
+                     alt="@movie.Title poster"
+                     style="height: 100%; width: 100px; object-fit: contain;" />
+            </div>
+
+            <!-- Text Section -->
+            <div class="col-md-9 d-flex flex-column justify-content-between p-2">
+                <div class="card-body p-0">
+                    <h5 class="card-title fs-6" style="height: 40px; overflow: hidden; margin-bottom: 5px;">
+                        @movie.Title (@movie.Year)
+                    </h5>
+                    <p class="card-text fs-7" style="margin-bottom: 5px;">
+                        <small class="text-muted">Type: @movie.Type</small>
+                    </p>
+                    <button class="btn btn-primary btn-sm" @onclick="() => NavigateToDetails(movie.ImdbID)">Details</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    }
+</div>
+
+@code {
+[Parameter]
+public List<OmdbMovie> Movies { get; set; }
+
+[Inject]
+public NavigationManager Navigation { get; set; }
+
+private void NavigateToDetails(string imdbID)
+{
+// Navigate to the movie details page using the IMDb ID
+Navigation.NavigateTo($"/movies/{imdbID}");
+}
+}

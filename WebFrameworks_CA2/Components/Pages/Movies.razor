@@ -1,4 +1,5 @@
 ﻿@using Components.Models
+@using WebFrameworks_CA2.Components.MovieComponents
 
 @page "/movies"
 @attribute [StreamRendering]
@@ -8,42 +9,39 @@
 
 <PageTitle>Movies</PageTitle>
 
-<h1>Find your movie to watch!</h1>
+<div class="container mt-4">
+    <h1 class="mb-4 text-center">Find Your Movie to Watch!</h1>
+    <p class="text-center">Search for different movies on this page!</p>
 
-<p>You can search for different movies on this page!</p>
+    <!-- Search Bar -->
+    <div class="input-group mb-3">
+        <input
+            type="text"
+            class="form-control"
+            placeholder="Search for movies..."
+            @bind="SearchTerm"
+            @bind:event="oninput"/>
+        <button class="btn btn-primary" @onclick="SearchMovies">Search</button>
+    </div>
 
-<!-- Search Bar -->
-<div>
-    <p>Current search term: @SearchTerm</p>
-    <input @bind="SearchTerm" @bind:event="oninput" placeholder="Search for movies..." />
-    <button @onclick="SearchMovies">Search</button>
+    <!-- Results Section -->
+    @if (isLoading) {
+        <p class="text-center text-secondary">Loading movies...</p>
+    }
+    else if (MovieList.Count == 0 && !isLoading && string.IsNullOrEmpty(ErrorMessage)) {
+        <p class="text-center text-muted">No movies found. Try searching for something else!</p>
+    }
+    else if (!string.IsNullOrEmpty(ErrorMessage)) {
+        <p class="text-center text-danger">Error: @ErrorMessage</p>
+    }
+    else {
+        <!-- MovieCardGrid component -->
+        <div class="d-flex flex-column">
+            <MovieCardGrid Movies="MovieList"/>
+        </div>
+    }
 </div>
 
-<!-- Results Section -->
-@if (isLoading) {
-    <p>Loading movies...</p>
-}
-else if (MovieList.Count == 0 && !isLoading && string.IsNullOrEmpty(ErrorMessage)) {
-    <p>No movies found. Try searching for something else!</p>
-}
-else if (!string.IsNullOrEmpty(ErrorMessage)) {
-    <p style="color:red;">Error: @ErrorMessage</p>
-}
-else {
-    <div>
-        <h3>Search Results:</h3>
-        <ul>
-            @foreach (var movie in MovieList) {
-                <li>
-                    <strong>@movie.Title</strong> (@movie.Year) 
-                </li>
-            }
-        </ul>
-    </div>
-}
-
-
-<!-- Code Section -->
 @code {
     private string SearchTerm = string.Empty;
     private List<OmdbMovie> MovieList = new();
@@ -53,7 +51,7 @@ else {
     private async Task SearchMovies() {
         if (!string.IsNullOrWhiteSpace(SearchTerm)) {
             isLoading = true;
-            ErrorMessage = string.Empty; // Reset any previous error message
+            ErrorMessage = string.Empty;
             Logger.LogInformation("Searching for movies with term: {SearchTerm}", SearchTerm);
             MovieList = await FetchMoviesAsync(SearchTerm);
             isLoading = false;
@@ -61,7 +59,7 @@ else {
     }
 
     private async Task<List<OmdbMovie>> FetchMoviesAsync(string searchTerm) {
-        Logger.LogDebug("SearchMovies method was called."); 
+        Logger.LogDebug("SearchMovies method was called.");
 
         var apiKey = Environment.GetEnvironmentVariable("OMDB_API_KEY");
 
@@ -79,17 +77,17 @@ else {
             var result = await response.Content.ReadFromJsonAsync<OmdbSearchResponse>();
             Logger.LogInformation("Movies fetched successfully.");
 
-            // Check if the response is "False" indicating an error or no movies found
             if (result?.Response == "False") {
                 ErrorMessage = result?.Error ?? "An unknown error occurred.";
-                return new List<OmdbMovie>(); // No movies found or API error
+                return new List<OmdbMovie>();
             }
 
-            return result.Search.Select(m => new OmdbMovie() {
+            return result.Search.Select(m => new OmdbMovie {
                 ImdbID = m.ImdbID,
                 Title = m.Title,
                 Year = m.Year,
-                Type = m.Type 
+                Type = m.Type,
+                Poster = m.Poster
             }).ToList();
         }
 
@@ -98,9 +96,4 @@ else {
         return new List<OmdbMovie>();
     }
 
-
-
-
-
-    
 }
