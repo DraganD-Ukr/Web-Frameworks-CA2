@@ -42,9 +42,11 @@ else {
     </div>
 }
 
+
+<!-- Code Section -->
 @code {
     private string SearchTerm = string.Empty;
-    private List<Movie> MovieList = new();
+    private List<OmdbMovie> MovieList = new();
     private bool isLoading = false;
     private string ErrorMessage = string.Empty;
 
@@ -58,7 +60,7 @@ else {
         }
     }
 
-    private async Task<List<Movie>> FetchMoviesAsync(string searchTerm) {
+    private async Task<List<OmdbMovie>> FetchMoviesAsync(string searchTerm) {
         Logger.LogDebug("SearchMovies method was called."); 
 
         var apiKey = Environment.GetEnvironmentVariable("OMDB_API_KEY");
@@ -80,19 +82,20 @@ else {
             // Check if the response is "False" indicating an error or no movies found
             if (result?.Response == "False") {
                 ErrorMessage = result?.Error ?? "An unknown error occurred.";
-                return new List<Movie>(); // No movies found or API error
+                return new List<OmdbMovie>(); // No movies found or API error
             }
 
-            return result.Search.Select(m => new Movie {
+            return result.Search.Select(m => new OmdbMovie() {
+                ImdbID = m.ImdbID,
                 Title = m.Title,
                 Year = m.Year,
-                Type = m.Type // Requires additional API calls for movie details
+                Type = m.Type 
             }).ToList();
         }
 
         Logger.LogWarning("Failed to fetch movies. Status code: {StatusCode}", response.StatusCode);
         ErrorMessage = "Failed to fetch movies from the API.";
-        return new List<Movie>();
+        return new List<OmdbMovie>();
     }
 
 
