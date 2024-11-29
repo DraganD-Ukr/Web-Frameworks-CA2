@@ -1,8 +1,10 @@
-﻿@page "/movies"
+﻿@using Components.Models
+
+@page "/movies"
 @attribute [StreamRendering]
 @rendermode InteractiveServer
 
-@inject ILogger<Movies> logger
+@inject ILogger<String> Logger
 
 <PageTitle>Movies</PageTitle>
 
@@ -33,7 +35,7 @@ else {
         <ul>
             @foreach (var movie in MovieList) {
                 <li>
-                    <strong>@movie.Title</strong> (@movie.Year) - @movie.Description
+                    <strong>@movie.Title</strong> (@movie.Year) 
                 </li>
             }
         </ul>
@@ -50,21 +52,21 @@ else {
         if (!string.IsNullOrWhiteSpace(SearchTerm)) {
             isLoading = true;
             ErrorMessage = string.Empty; // Reset any previous error message
-            logger.LogInformation("Searching for movies with term: {SearchTerm}", SearchTerm);
+            Logger.LogInformation("Searching for movies with term: {SearchTerm}", SearchTerm);
             MovieList = await FetchMoviesAsync(SearchTerm);
             isLoading = false;
         }
     }
 
     private async Task<List<Movie>> FetchMoviesAsync(string searchTerm) {
-        logger.LogInformation("SearchMovies method was called."); 
+        Logger.LogDebug("SearchMovies method was called."); 
 
         var apiKey = Environment.GetEnvironmentVariable("OMDB_API_KEY");
 
-        logger.LogDebug("Retrieved API Key: {ApiKey}", apiKey);
+        Logger.LogDebug("Retrieved API Key: {ApiKey}", apiKey);
 
         if (string.IsNullOrEmpty(apiKey)) {
-            logger.LogError("API key is not set in the environment variables.");
+            Logger.LogError("API key is not set in the environment variables.");
             throw new InvalidOperationException("API key is not set in the environment variables.");
         }
 
@@ -73,7 +75,7 @@ else {
 
         if (response.IsSuccessStatusCode) {
             var result = await response.Content.ReadFromJsonAsync<OmdbSearchResponse>();
-            logger.LogInformation("Movies fetched successfully.");
+            Logger.LogInformation("Movies fetched successfully.");
 
             // Check if the response is "False" indicating an error or no movies found
             if (result?.Response == "False") {
@@ -84,30 +86,18 @@ else {
             return result.Search.Select(m => new Movie {
                 Title = m.Title,
                 Year = m.Year,
-                Description = m.Plot // Requires additional API calls for movie details
+                Type = m.Type // Requires additional API calls for movie details
             }).ToList();
         }
 
-        logger.LogWarning("Failed to fetch movies. Status code: {StatusCode}", response.StatusCode);
+        Logger.LogWarning("Failed to fetch movies. Status code: {StatusCode}", response.StatusCode);
         ErrorMessage = "Failed to fetch movies from the API.";
         return new List<Movie>();
     }
 
-    private class Movie {
-        public string Title { get; set; }
-        public string Year { get; set; }
-        public string Description { get; set; }
-    }
 
-    private class OmdbSearchResponse {
-        public string Response { get; set; }
-        public string Error { get; set; }
-        public List<OmdbMovie> Search { get; set; }
-    }
 
-    private class OmdbMovie {
-        public string Title { get; set; }
-        public string Year { get; set; }
-        public string Plot { get; set; }
-    }
+
+
+    
 }
