@@ -1,30 +1,81 @@
 ﻿@page "/movies/{ImdbID}"
 
 @using WebFrameworks_CA2.Components.Models
-@inject ILogger<string> Logger
+@inject ILogger<String> Logger
 @inject IJSRuntime JsRuntime
 @rendermode InteractiveServer
 
 <PageTitle>@title</PageTitle>
 
-<h3>Movie Details</h3>
+<div class="container mt-4">
+    <h3 class="display-5 text-primary text-center">@title</h3>
 
-@if (movie == null)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <div>
-        <img src="@(!string.IsNullOrEmpty(movie.Poster) ? movie.Poster : "https://via.placeholder.com/150")" 
-             alt="@movie.Title poster" style="max-width: 200px;" />
-        <h4>@movie.Title (@movie.ReleaseDate)</h4>
-        <p><strong>Type:</strong> @movie.Type</p>
-        <p><strong>Plot:</strong> @movie.Plot</p>
-        <p><strong>Actors:</strong> @movie.Actors</p>
-        <button class="btn btn-secondary" @onclick=BackToMovies> Back to Movies </button>
-    </div>
-}
+    @if (movie == null) {
+        <p class="text-center text-secondary">Loading...</p>
+    }
+    else {
+        <div class="row">
+            <!-- Movie Poster Section -->
+            <div class="col-md-4 text-center">
+                <img src="@(!string.IsNullOrEmpty(movie.Poster) ? movie.Poster : "https://via.placeholder.com/200")"
+                     alt="@movie.Title poster" class="img-fluid rounded shadow-lg" style="max-width: 100%;"/>
+            </div>
+
+            <!-- Movie Information Section -->
+            <div class="col-md-8">
+                
+                <div class="mb-6">
+                    <p>
+                        <strong>ImdbID:</strong> <span class="text-muted">@movie.ImdbID</span>
+                    </p>
+                    <p>
+                        <strong>Type:</strong> <span class="text-muted">@movie.Type</span>
+                    </p>
+                    <p>
+                        <strong>Genre:</strong> <span class="text-muted">@movie.Genre</span>
+                    </p>
+                    <p>
+                        <strong>Runtime:</strong> <span class="text-muted">@movie.RunTime</span>
+                    </p>
+                    <p>
+                        <strong>Released:</strong> <span class="text-muted">@movie.Released</span>
+                    </p>
+                    <p>
+                        <strong>Country:</strong> <span class="text-muted">@movie.Country</span>
+                    </p>
+                    <p>
+                        <strong>Language:</strong> <span class="text-muted">@movie.Language</span>
+                    </p>
+                    <p>
+                        <strong>Plot:</strong> <span class="text-muted">@movie.Plot</span>
+                    </p>
+                    <p>
+                        <strong>Actors:</strong> <span class="text-muted">@movie.Actors</span>
+                    </p>
+                    <br/>
+                    
+                    <!-- Movie Ratings Section -->
+                    <div class="mt-8">
+                        <h5>Ratings</h5>
+                        <div class="list-group" style="width: 50%">
+                            @foreach (var rating in movie.Ratings) {
+                                <div class="list-group-item d-flex justify-content-between">
+                                    <strong>@rating.Source:</strong>
+                                    <span class="text-muted">@rating.Value</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <br/><br/>
+
+                <!-- Button to go back -->
+                <button class="btn btn-secondary mb-3 btn-lg mt-1" @onclick="BackToMovies">Back to Movies</button>
+            </div>
+        </div>
+    }
+</div>
 
 @code {
     [Parameter] public string ImdbID { get; set; }
@@ -32,8 +83,7 @@ else
     private string title => movie?.Title ?? "Movie Details";
     private FullOmdbMovie movie;
 
-    protected override async Task OnInitializedAsync()
-    {
+    protected override async Task OnInitializedAsync() {
         var apiKey = Environment.GetEnvironmentVariable("OMDB_API_KEY");
 
         if (string.IsNullOrEmpty(apiKey)) {
@@ -41,42 +91,38 @@ else
             throw new InvalidOperationException("API key is not set in the environment variables.");
         }
 
-        try
-        {
+        try {
             // Make the API call
             HttpClient Http = new HttpClient();
             var response = await Http.GetAsync($"https://www.omdbapi.com/?i={ImdbID}&apikey={apiKey}");
 
-            if (response.IsSuccessStatusCode)
-            {
+            if (response.IsSuccessStatusCode) {
                 // Parse the response into the 'movie' object
                 movie = await response.Content.ReadFromJsonAsync<FullOmdbMovie>();
-                await JsRuntime.InvokeVoidAsync("blazorSetTitle ", movie.Title);
             }
-            else
-            {
+            else {
                 Logger.LogWarning("Failed to fetch movie details. Status code: {StatusCode}", response.StatusCode);
             }
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             Logger.LogError(ex, "Error fetching movie details.");
         }
     }
 
+        // Call JS function after component rendering
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (firstRender && movie != null) {
+            // Set the page title after the component has rendered
+            await JsRuntime.InvokeVoidAsync("BlazorSetTitle", movie.Title);
+        }
+    }
 
-    
-    
-    
     // Navigation back to the movies page
-    [Inject]
-    public NavigationManager Navigation { get; set; }
-    
-    private void BackToMovies()
-    {
+    [Inject] public NavigationManager Navigation { get; set; }
+
+    private void BackToMovies() {
         Logger.LogInformation("Navigating back to home page.");
         Navigation.NavigateTo("/movies");
     }
-    
-    
+
 }
