@@ -6,11 +6,11 @@
     <div class="card mb-3" style="max-width: 50%; height: 150px;">
         <div class="row g-0">
             <!-- Image Section -->
-            <div class="col-md-3 p-0" style="display: flex; justify-content: center;"> <!-- Align image to the right -->
-                <img src="@(!movie.Poster.Equals("N/A") ? movie.Poster : "https://placehold.co/100x150")"
+            <div class="col-md-3 p-0 d-flex align-items-center justify-content-center" style="height: 100%;">
+                <img src="@(!movie.Poster.Equals("N/A") ? movie.Poster : "Images/poster-placeholder.png")"
                      class="img-fluid rounded-start"
                      alt="@movie.Title poster"
-                     style="height: 100%; width: 100px; object-fit: contain;" />
+                     style="max-height: 100%; max-width: 100px; object-fit: contain;" />
             </div>
 
             <!-- Text Section -->
