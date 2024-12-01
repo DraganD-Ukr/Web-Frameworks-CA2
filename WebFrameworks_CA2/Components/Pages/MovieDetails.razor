@@ -1,8 +1,9 @@
 ﻿@page "/movies/{ImdbID}"
 
-@using WebFrameworks_CA2.Components.Models
 @using WebFrameworks_CA2.Components.Models.Movie
-@inject ILogger<String> Logger
+@using WebFrameworks_CA2.Components.Service
+@inject MovieService MovieService
+@inject ILogger<MovieDetails> Logger
 @inject IJSRuntime JsRuntime
 @rendermode InteractiveServer
 
@@ -24,48 +25,28 @@
 
             <!-- Movie Information Section -->
             <div class="col-md-8">
-                
                 <div class="mb-6">
-                    <p>
-                        <strong>ImdbID:</strong> <span class="text-muted">@movie.ImdbID</span>
-                    </p>
-                    <p>
-                        <strong>Type:</strong> <span class="text-muted">@movie.Type</span>
-                    </p>
-                    <p>
-                        <strong>Genre:</strong> <span class="text-muted">@movie.Genre</span>
-                    </p>
-                    <p>
-                        <strong>Runtime:</strong> <span class="text-muted">@movie.RunTime</span>
-                    </p>
-                    <p>
-                        <strong>Released:</strong> <span class="text-muted">@movie.Released</span>
-                    </p>
-                    <p>
-                        <strong>Country:</strong> <span class="text-muted">@movie.Country</span>
-                    </p>
-                    <p>
-                        <strong>Language:</strong> <span class="text-muted">@movie.Language</span>
-                    </p>
-                    <p>
-                        <strong>Plot:</strong> <span class="text-muted">@movie.Plot</span>
-                    </p>
-                    <p>
-                        <strong>Actors:</strong> <span class="text-muted">@movie.Actors</span>
-                    </p>
-                    <br/>
-                    
-                    <!-- Movie Ratings Section -->
-                    <div class="mt-8">
-                        <h5>Ratings</h5>
-                        <div class="list-group" style="width: 50%">
-                            @foreach (var rating in movie.Ratings) {
-                                <div class="list-group-item d-flex justify-content-between">
-                                    <strong>@rating.Source:</strong>
-                                    <span class="text-muted">@rating.Value</span>
-                                </div>
-                            }
-                        </div>
+                    <p><strong>ImdbID:</strong> <span class="text-muted">@movie.ImdbID</span></p>
+                    <p><strong>Type:</strong> <span class="text-muted">@movie.Type</span></p>
+                    <p><strong>Genre:</strong> <span class="text-muted">@movie.Genre</span></p>
+                    <p><strong>Runtime:</strong> <span class="text-muted">@movie.RunTime</span></p>
+                    <p><strong>Released:</strong> <span class="text-muted">@movie.Released</span></p>
+                    <p><strong>Country:</strong> <span class="text-muted">@movie.Country</span></p>
+                    <p><strong>Language:</strong> <span class="text-muted">@movie.Language</span></p>
+                    <p><strong>Plot:</strong> <span class="text-muted">@movie.Plot</span></p>
+                    <p><strong>Actors:</strong> <span class="text-muted">@movie.Actors</span></p>
+                </div>
+
+                <!-- Movie Ratings Section -->
+                <div class="mt-8">
+                    <h5>Ratings</h5>
+                    <div class="list-group" style="width: 50%">
+                        @foreach (var rating in movie.Ratings) {
+                            <div class="list-group-item d-flex justify-content-between">
+                                <strong>@rating.Source:</strong>
+                                <span class="text-muted">@rating.Value</span>
+                            </div>
+                        }
                     </div>
                 </div>
 
@@ -84,46 +65,30 @@
     private string title => movie?.Title ?? "Movie Details";
     private FullOmdbMovie movie;
 
-    protected override async Task OnInitializedAsync() {
-        var apiKey = Environment.GetEnvironmentVariable("OMDB_API_KEY");
-
-        if (string.IsNullOrEmpty(apiKey)) {
-            Logger.LogError("API key is not set in the environment variables.");
-            throw new InvalidOperationException("API key is not set in the environment variables.");
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            movie = await MovieService.GetMovieDetailsAsync(ImdbID);
         }
-
-        try {
-            // Make the API call
-            HttpClient Http = new HttpClient();
-            var response = await Http.GetAsync($"https://www.omdbapi.com/?i={ImdbID}&apikey={apiKey}");
-
-            if (response.IsSuccessStatusCode) {
-                // Parse the response into the 'movie' object
-                movie = await response.Content.ReadFromJsonAsync<FullOmdbMovie>();
-            }
-            else {
-                Logger.LogWarning("Failed to fetch movie details. Status code: {StatusCode}", response.StatusCode);
-            }
-        }
-        catch (Exception ex) {
+        catch (Exception ex)
+        {
             Logger.LogError(ex, "Error fetching movie details.");
         }
     }
 
-        // Call JS function after component rendering
-    protected override async Task OnAfterRenderAsync(bool firstRender) {
-        if (firstRender && movie != null) {
-            // Set the page title after the component has rendered
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && movie != null)
+        {
             await JsRuntime.InvokeVoidAsync("BlazorSetTitle", movie.Title);
         }
     }
 
-    // Navigation back to the movies page
     [Inject] public NavigationManager Navigation { get; set; }
 
-    private void BackToMovies() {
-        Logger.LogInformation("Navigating back to home page.");
+    private void BackToMovies()
+    {
         Navigation.NavigateTo("/movies");
     }
-
 }
