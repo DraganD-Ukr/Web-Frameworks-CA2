@@ -1,0 +1,163 @@
+﻿@using Models.Cinema
+
+@page "/cinemas"
+@inject IJSRuntime JSRuntime
+@inject ILogger<String> Logger
+@rendermode InteractiveServer
+
+<div class="d-flex flex-column align-items-center">
+    <h3>Get Nearby Cinemas</h3>
+</div>
+
+
+<div class="d-flex flex-column align-items-center mt-3">
+    <!-- Radius slider -->
+    <label for="radius" class="form-label text-center">Adjust Search Radius</label>
+    <input type="range" id="radius" @bind="Radius"
+           min="1000" max="50000" step="100"
+           class="form-range w-50"/>
+    <span class="form-text mt-2">Selected Radius: <strong>@Radius</strong> meters</span>
+
+    <!-- Button and text under slider -->
+    <button class="btn btn-primary mt-3" @onclick="GetLocation">Get My Location</button>
+
+    @if (!string.IsNullOrEmpty(errorMessage)) {
+        <div class="alert alert-warning mt-3">
+            <p>@errorMessage</p>
+        </div>
+    }
+</div>
+
+@if (cinemas != null && cinemas.Any()) {
+    <h4 class="mt-4">Nearby Cinemas</h4>
+
+    <ul class="list-group" style="padding-top: 20px;">
+
+        @foreach (var cinema in cinemas) {
+            <li class="list-group-item" style="margin-bottom: 20px;">
+                <h4>@cinema.Name</h4>
+                <span style="display: block; font-size: 1.1rem; color: #555; margin-top: 8px;">Address: @cinema.Address</span>
+                <br/>
+                @if (cinema.Rating.HasValue) {
+                    <span class="badge bg-info">Rating: @cinema.Rating</span>
+                }
+                <br/>
+                @if (cinema.UserRatingsCount.HasValue) {
+                    <span class="badge bg-secondary">Reviews: @cinema.UserRatingsCount</span>
+                }
+                <br/>
+                @if (!string.IsNullOrEmpty(cinema.GoogleLink)) {
+                    <a href="@cinema.GoogleLink" target="_blank" class="btn btn-link">View on Google</a>
+                }
+            </li>
+        }
+
+    </ul>
+}
+
+@code {
+    private double? _latitude;
+    private double? _longitude;
+    private string errorMessage;
+    private List<Cinema> cinemas;
+
+    private int _radius = 5000; // Default radius in meters (5km)
+
+    private int Radius {
+        get => _radius;
+        set => _radius = value;
+    }
+
+    private async Task GetLocation() {
+        try {
+            Logger.LogInformation("Getting location info..");
+            var location = await JSRuntime.InvokeAsync<Location>("getGeolocation");
+
+            Logger.LogInformation($"Geolocation retrieved: Latitude: {location.Latitude}, Longitude: {location.Longitude}");
+
+            _latitude = location.Latitude;
+            _longitude = location.Longitude;
+            errorMessage = null;
+
+            await FetchNearbyCinemas(_latitude.Value, _longitude.Value, Radius);
+        }
+        catch (Exception ex) {
+            errorMessage = "Error getting geolocation: " + ex.Message;
+            Logger.LogError($"Error getting geolocation: {ex.Message}");
+        }
+    }
+
+    private async Task FetchNearbyCinemas(double lat, double lon, int radius) {
+        try {
+            var googleApiKey = Environment.GetEnvironmentVariable("GOOGLE_API_KEY");
+            Logger.LogDebug("Google API Key: " + googleApiKey);
+            Logger.LogInformation("Fetching nearby cinemas with radius: " + radius);
+
+            var apiUrl = $"https://maps.googleapis.com/maps/api/place/nearbysearch/xml?location={lat},{lon}&radius={radius}&type=movie_theater&key={googleApiKey}";
+            Logger.LogDebug($"API URL: {apiUrl}");
+
+            using (var client = new HttpClient()) {
+                var response = await client.GetStringAsync(apiUrl);
+
+                // Deserialize XML response
+                var xmlSerializer = new System.Xml.Serialization.XmlSerializer(typeof(GooglePlacesResponse));
+                using (var stringReader = new StringReader(response)) {
+                    var result = (GooglePlacesResponse)xmlSerializer.Deserialize(stringReader);
+
+                    // Convert to list of Cinema objects 
+                    if (result?.Results != null && result.Results.Any()) {
+                        Logger.LogInformation($"Found {result.Results.Count} cinemas.");
+                        cinemas = result.Results.Select(r => new Cinema {
+                            Name = r.Name,
+                            Address = r.Vicinity,
+                            Rating = r.Rating,
+                            UserRatingsCount = r.UserRatingsCount,
+                            GoogleLink = $"https://www.google.com/maps/place/?q=place_id:{r.PlaceId}",
+                        }).ToList();
+
+                        // Debugging - Log the cinema details
+                        foreach (var cinema in cinemas) {
+                            Logger.LogInformation($"Cinema: {cinema.Name}, Address: {cinema.Address}");
+                        }
+                    }
+                    else {
+                        errorMessage = "No cinemas found within the specified radius.";
+                        Logger.LogInformation("No cinemas found.");
+                    }
+                }
+            }
+        }
+        catch (Exception ex) {
+            errorMessage = "Error fetching cinemas: " + ex.Message;
+            Logger.LogError($"Error fetching cinemas: {ex.Message}");
+        }
+    }
+
+
+    public class Location {
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+    }
+
+
+}
+
+<!-- Function to get the user's geolocation -->
+<script>
+    window.getGeolocation = function() {
+        return new Promise((resolve, reject) => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    resolve({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    });
+                }, function(error) {
+                    reject("Geolocation error: " + error.message);
+                });
+            } else {
+                reject("Geolocation is not supported by this browser.");
+            }
+        });
+    }
+</script>
