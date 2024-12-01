@@ -1,9 +1,12 @@
 ﻿@using Models.Cinema
+@using WebFrameworks_CA2.Components.Service
 
 @page "/cinemas"
 @inject IJSRuntime JSRuntime
 @inject ILogger<String> Logger
 @rendermode InteractiveServer
+@inject CinemaService CinemaService
+
 
 <div class="d-flex flex-column align-items-center">
     <h3>Get Nearby Cinemas</h3>
@@ -68,6 +71,21 @@
         set => _radius = value;
     }
 
+    /// <summary>
+    /// Retrieves the user's current geolocation (latitude and longitude) and fetches nearby cinemas based on the user's specified radius.
+    /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous operation of obtaining the user's location
+    /// and retrieving nearby cinemas.
+    /// </returns>
+    /// <remarks>
+    /// This method uses the JavaScript geolocation API to get the user's current coordinates 
+    /// and then fetches nearby cinemas within the specified radius by invoking another method.
+    /// </remarks>
+    /// <exception cref="Exception">
+    /// Thrown when there is an error retrieving the user's location or when the geolocation 
+    /// API fails to provide coordinates.
+    /// </exception>
     private async Task GetLocation() {
         try {
             Logger.LogInformation("Getting location info..");
@@ -87,53 +105,45 @@
         }
     }
 
-    private async Task FetchNearbyCinemas(double lat, double lon, int radius) {
-        try {
-            var googleApiKey = Environment.GetEnvironmentVariable("GOOGLE_API_KEY");
-            Logger.LogDebug("Google API Key: " + googleApiKey);
-            Logger.LogInformation("Fetching nearby cinemas with radius: " + radius);
 
-            var apiUrl = $"https://maps.googleapis.com/maps/api/place/nearbysearch/xml?location={lat},{lon}&radius={radius}&type=movie_theater&key={googleApiKey}";
-            Logger.LogDebug($"API URL: {apiUrl}");
+    
+    /// <summary>
+    /// Fetches a list of nearby cinemas using the Google Places API.
+    /// </summary>
+    /// <param name="lat">The latitude of the user's current location.</param>
+    /// <param name="lon">The longitude of the user's current location.</param>
+    /// <param name="radius">The search radius in meters within which cinemas should be found.</param>
+    /// <returns>A task that represents the asynchronous operation. 
+    /// If successful, populates the list of nearby cinemas.</returns>
+    /// <remarks>
+    /// This method sends an HTTP GET request to the Google Places API
+    /// to fetch cinema details based on the provided location and radius.
+    /// The results are deserialized and mapped to the <see cref="Cinema"/> model.
+    /// </remarks>
+    /// <exception cref="Exception">
+    /// Thrown when there is an error fetching or processing the API response.
+    /// The exception message contains additional details about the error.
+    /// </exception>
+    private async Task FetchNearbyCinemas(double lat, double lon, int radius)
+    {
+        try
+        {
+            Logger.LogInformation("Fetching nearby cinemas...");
+            cinemas = await CinemaService.GetNearbyCinemasAsync(lat, lon, radius);
 
-            using (var client = new HttpClient()) {
-                var response = await client.GetStringAsync(apiUrl);
-
-                // Deserialize XML response
-                var xmlSerializer = new System.Xml.Serialization.XmlSerializer(typeof(GooglePlacesResponse));
-                using (var stringReader = new StringReader(response)) {
-                    var result = (GooglePlacesResponse)xmlSerializer.Deserialize(stringReader);
-
-                    // Convert to list of Cinema objects 
-                    if (result?.Results != null && result.Results.Any()) {
-                        Logger.LogInformation($"Found {result.Results.Count} cinemas.");
-                        cinemas = result.Results.Select(r => new Cinema {
-                            Name = r.Name,
-                            Address = r.Vicinity,
-                            Rating = r.Rating,
-                            UserRatingsCount = r.UserRatingsCount,
-                            GoogleLink = $"https://www.google.com/maps/place/?q=place_id:{r.PlaceId}",
-                        }).ToList();
-
-                        // Debugging - Log the cinema details
-                        foreach (var cinema in cinemas) {
-                            Logger.LogInformation($"Cinema: {cinema.Name}, Address: {cinema.Address}");
-                        }
-                    }
-                    else {
-                        errorMessage = "No cinemas found within the specified radius.";
-                        Logger.LogInformation("No cinemas found.");
-                    }
-                }
+            if (!cinemas.Any())
+            {
+                errorMessage = "No cinemas found within the specified radius.";
             }
         }
-        catch (Exception ex) {
+        catch (Exception ex)
+        {
             errorMessage = "Error fetching cinemas: " + ex.Message;
             Logger.LogError($"Error fetching cinemas: {ex.Message}");
         }
     }
 
-
+    
     public class Location {
         public double Latitude { get; set; }
         public double Longitude { get; set; }
