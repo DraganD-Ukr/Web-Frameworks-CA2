@@ -1,10 +1,16 @@
 using WebFrameworks_CA2.Components;
+using WebFrameworks_CA2.Components.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddScoped<MovieService>();
+
 // Add services to the container.
-builder.Services.AddRazorComponents()
+builder.Services
+    .AddHttpClient()
+    .AddRazorComponents()
     .AddInteractiveServerComponents();
+
 
 builder.Logging.AddConsole();
 

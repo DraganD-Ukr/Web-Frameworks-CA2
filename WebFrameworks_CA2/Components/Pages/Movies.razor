@@ -1,13 +1,13 @@
-﻿@using Components.Models
+﻿@page "/movies"
 @using WebFrameworks_CA2.Components.Models.Movie
+@using WebFrameworks_CA2.Components.Service
 @using WebFrameworks_CA2.Components.MovieComponents
-
-@page "/movies"
 @attribute [StreamRendering]
 @rendermode InteractiveServer
 
 @inject ILogger<String> Logger
 @inject IJSRuntime JsRuntime
+@inject MovieService MovieService
 
 <PageTitle>Movies</PageTitle>
 
@@ -62,12 +62,12 @@
     private bool isLoading = false;
     private string ErrorMessage = string.Empty;
 
-// Infinite scrolling variables
+    // Infinite scrolling variables
     private int CurrentPage = 1;
     private bool AllMoviesLoaded = false;
     private bool IsLoadingMore = false;
     private ElementReference containerElement;
-    
+
     /// <summary>
     /// Triggers the JavaScript scroll initialization only once after the component is first rendered.
     /// </summary>
@@ -91,7 +91,7 @@
     /// </summary>
     private async Task SearchMovies() {
         if (!string.IsNullOrWhiteSpace(SearchTerm)) {
-// Reset state for a new search
+            // Reset state for a new search
             isLoading = true;
             ErrorMessage = string.Empty;
             MovieList.Clear();
@@ -105,10 +105,8 @@
     }
 
     /// <summary>
-    /// Fetches movie from the OMDB API with provided search term and page.
-    /// Fetches movies asynchronously, updates the MovieList and UI state.
+    /// Fetches movies from the API service.
     /// </summary>
-    /// <param name="page">Page of found results.</param>
     private async Task FetchMoviesAsync(int page) {
         if (IsLoadingMore || AllMoviesLoaded) {
             Logger.LogDebug("Skipping fetch, isLoadingMore: {isLoadingMore}, AllMoviesLoaded: {AllMoviesLoaded}", IsLoadingMore, AllMoviesLoaded);
@@ -118,40 +116,23 @@
         IsLoadingMore = true; // Set to true to indicate that a fetch is in progress
         Logger.LogDebug("Fetching movies for page: {Page}", page);
 
-        var apiKey = Environment.GetEnvironmentVariable("OMDB_API_KEY"); //Getting the API key from the environment variables
-        if (string.IsNullOrEmpty(apiKey)) {
-            Logger.LogError("API key is not set in the environment variables.");
-            throw new InvalidOperationException("API key is not set in the environment variables.");
-        }
-        
-        // Actual API call to fetch movies
-        var client = new HttpClient();
-        var response = await client.GetAsync($"https://www.omdbapi.com/?s={SearchTerm}&page={page}&apikey={apiKey}");
+        var result = await MovieService.FetchMoviesAsync(SearchTerm, page);
 
-        // Check if the response is successful    
-        if (response.IsSuccessStatusCode) {
-            var result = await response.Content.ReadFromJsonAsync<OmdbSearchResponse>();
-            
-            // Check if the response is valid
-            if (result?.Response == "False" || result?.Search == null) {
-                AllMoviesLoaded = true; // No more movies to load
-                Logger.LogDebug("No more movies found for page: {Page}", page);
-            }
-            else {
-                // Add the fetched movies to the list
-                MovieList.AddRange(result.Search.Select(m => new OmdbMovie {
-                    ImdbID = m.ImdbID,
-                    Title = m.Title,
-                    Year = m.Year,
-                    Type = m.Type,
-                    Poster = m.Poster
-                }));
-                CurrentPage++; // Increment the page number
-                StateHasChanged(); // Trigger re-render to update the UI
-            }
+        if (result?.Response == "False" || result?.Search == null) {
+            AllMoviesLoaded = true; // No more movies to load
+            Logger.LogDebug("No more movies found for page: {Page}", page);
         }
         else {
-            Logger.LogWarning("Failed to fetch movies for page: {Page}. Status code: {StatusCode}", page, response.StatusCode);
+            // Add the fetched movies to the list
+            MovieList.AddRange(result.Search.Select(m => new OmdbMovie {
+                ImdbID = m.ImdbID,
+                Title = m.Title,
+                Year = m.Year,
+                Type = m.Type,
+                Poster = m.Poster
+            }));
+            CurrentPage++; // Increment the page number
+            StateHasChanged(); // Trigger re-render to update the UI
         }
 
         // Reset isLoadingMore after fetching is complete
@@ -159,8 +140,7 @@
 
         // Force re-render to reflect the correct "No more movies" state
         StateHasChanged();
-    }
-
+    }   
 }
 
 <script>
