@@ -4,12 +4,16 @@ using WebFrameworks_CA2.Components.Service;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
-    .AddScoped<MovieService>()
-    .AddScoped<CinemaService>();
+    .AddHttpClient<MovieService>()
+    .Services.AddScoped<MovieService>();
+    
+builder.Services
+    .AddHttpClient<CinemaService>()
+    .Services.AddScoped<CinemaService>();
+
 
 // Add services to the container.
 builder.Services
-    .AddHttpClient()
     .AddRazorComponents()
     .AddInteractiveServerComponents();
 
