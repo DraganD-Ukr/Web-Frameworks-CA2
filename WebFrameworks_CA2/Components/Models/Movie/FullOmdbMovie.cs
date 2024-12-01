@@ -1,4 +1,4 @@
-﻿namespace WebFrameworks_CA2.Components.Models;
+﻿namespace WebFrameworks_CA2.Components.Models.Movie;
 
 public class FullOmdbMovie {
     public String ImdbID { get; set; }
