@@ -37,8 +37,7 @@ public class MovieService :IMovieService {
         }
 
         try {
-            var response =
-                await _httpClient.GetAsync($"https://www.omdbapi.com/?s={searchTerm}&page={page}&apikey={_apiKey}");
+            var response = await _httpClient.GetAsync($"https://www.omdbapi.com/?s={searchTerm}&page={page}&apikey={_apiKey}");
             _logger.LogInformation("API Response: {Response}", response.Content.ReadAsStringAsync().Result);
             response.EnsureSuccessStatusCode(); // Will throw an exception for non-success codes
 
