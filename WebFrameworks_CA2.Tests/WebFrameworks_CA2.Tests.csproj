@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Updated to compatible versions with .NET 8.0 -->
+    <PackageReference Include="coverlet.collector" Version="6.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" /> <!-- Updated version -->
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.0.0-pre.20" /> <!-- Updated version -->
+    <PackageReference Include="Moq" Version="4.20.72" /> <!-- Ensure Moq is installed -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WebFrameworks_CA2\WebFrameworks_CA2.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -4,7 +4,7 @@ using System.Net.Http;
 using System.Xml.Serialization;
 using Models.Cinema;
 
-public class CinemaService
+public class CinemaService : ICinemaService
 {
     private readonly ILogger<CinemaService> _logger;
     private readonly string _googleApiKey;

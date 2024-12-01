@@ -8,6 +8,10 @@
 
     <ItemGroup>
       <None Include="wwwroot\Images\poster-placeholder.png" />
+        <PackageReference Include="xunit" Version="2.9.2" /> <!-- Ensure version is correct -->
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" /> <!-- Match .NET SDK version -->
+        <PackageReference Include="Moq" Version="4.20.72" /> <!-- Ensure version is correct -->
     </ItemGroup>
+    
 
 </Project>

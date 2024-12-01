@@ -3,7 +3,7 @@ namespace WebFrameworks_CA2.Components.Service;
 
 
 
-public class MovieService {
+public class MovieService :IMovieService {
     private readonly HttpClient _httpClient;
     private readonly ILogger<MovieService> _logger;
     private readonly string _apiKey;
@@ -30,6 +30,7 @@ public class MovieService {
     /// Thrown when there is an error during the HTTP request or processing of the response.
     /// </exception>
     public async Task<OmdbSearchResponse> FetchMoviesAsync(string searchTerm, int page) {
+        
         if (string.IsNullOrEmpty(_apiKey)) {
             _logger.LogError("API key is not set in the environment variables.");
             throw new InvalidOperationException("API key is not set in the environment variables.");
